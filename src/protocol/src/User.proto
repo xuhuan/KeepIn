@@ -1,0 +1,20 @@
+syntax = "proto3";
+package User;
+option java_package = "com.z.ki.protobuf";
+option optimize_for = SPEED;
+
+// 用户基本信息
+message Info{
+	uint32 uid = 1;
+	uint32 gender = 2; 	//用户性别,男：1 女：2 匿名：0
+	string nick_name = 3;	//昵称
+	string avatar_url = 4;	//头像
+}
+
+
+// 用户在线状态
+enum OnlineStatus{
+    ONLINE  = 0;
+    OFFLINE = 1;
+    LEAVE   = 2;
+}

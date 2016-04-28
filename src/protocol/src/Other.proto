@@ -1,0 +1,7 @@
+syntax = "proto3";
+package Other;
+option java_package = "com.z.ki.protobuf";
+option optimize_for = SPEED;
+
+message HeartBeat{
+}
