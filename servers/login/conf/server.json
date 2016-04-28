@@ -1,0 +1,7 @@
+{
+    "LoginResponseTimeout": "15000",
+    "DbServers": [
+        { "Ip": "192.168.0.189", "Port": 8800 },
+        { "Ip": "192.168.0.189", "Port": 8801 }
+    ]
+}
