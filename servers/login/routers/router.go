@@ -8,7 +8,7 @@
 package routers
 
 import (
-	"github.com/xuhuan/KeepIn_Server/servers/login/controllers"
+	"github.com/xuhuan/keepin/servers/login/controllers"
 
 	"github.com/astaxie/beego"
 )

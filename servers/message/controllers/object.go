@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/xuhuan/KeepIn_Server/servers/message/models"
 	"encoding/json"
+	"github.com/xuhuan/keepin/servers/message/models"
 
 	"github.com/astaxie/beego"
 )
@@ -89,4 +89,3 @@ func (o *ObjectController) Delete() {
 	o.Data["json"] = "delete success!"
 	o.ServeJSON()
 }
-

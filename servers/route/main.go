@@ -1,8 +1,8 @@
 package main
 
 import (
-	_ "github.com/xuhuan/KeepIn_Server/servers/route/docs"
-	_ "github.com/xuhuan/KeepIn_Server/servers/route/routers"
+	_ "github.com/xuhuan/keepin/servers/route/docs"
+	_ "github.com/xuhuan/keepin/servers/route/routers"
 
 	"github.com/astaxie/beego"
 )

@@ -3,8 +3,8 @@ package cmd
 import (
 	"github.com/astaxie/beego"
 	"github.com/codegangsta/cli"
-	_ "github.com/xuhuan/KeepIn_Server/servers/login/docs"
-	_ "github.com/xuhuan/KeepIn_Server/servers/login/routers"
+	_ "github.com/xuhuan/keepin/servers/login/docs"
+	_ "github.com/xuhuan/keepin/servers/login/routers"
 )
 
 var CmdWeb = cli.Command{

@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/xuhuan/KeepIn_Server/servers/login/utils"
+	"github.com/xuhuan/keepin/utils"
 )
 
 var L = utils.L

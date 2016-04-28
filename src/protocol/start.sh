@@ -92,6 +92,7 @@ build_protobuf(){
 
 	#go
 	mkdir -p $DST_DIR/go
+	# protoc -I=$SRC_DIR --go_out=$DST_DIR/go/ $SRC_DIR/*.proto
 	for i in $SRC_DIR/*.proto; do
 		protoc -I=$SRC_DIR --go_out=$DST_DIR/go/ $i
 	done

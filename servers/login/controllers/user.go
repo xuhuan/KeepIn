@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/xuhuan/KeepIn_Server/servers/login/models"
 	"encoding/json"
+	"github.com/xuhuan/keepin/servers/login/models"
 
 	"github.com/astaxie/beego"
 )
@@ -116,4 +116,3 @@ func (u *UserController) Logout() {
 	u.Data["json"] = "logout success"
 	u.ServeJSON()
 }
-
