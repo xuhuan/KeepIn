@@ -1,0 +1,75 @@
+syntax = "proto3";
+package protocol;
+import "Base.proto";
+option java_package = "com.z.ki.protobuf";
+option optimize_for = SPEED;
+
+// cluster服务相关协议
+// 服务主要用来收集各个服务器集群的信息
+// 需要的信息为：
+// 服务器类型
+// 服务器IP
+// 服务器端口
+// 负载信息
+
+// 请求操作类型
+enum ClusterActionType{
+    REGIST_SERVER		     = 0;
+    GET_SERVERS		         = 1;
+}
+
+// 服务器类型
+enum ClusterServerType{
+	LOGIN 					 = 0;
+	ROUTE 					 = 1;
+	MESSAGE					 = 2;
+	DB 						 = 3;
+	PUSH 					 = 4;
+	FILE 					 = 5;
+	CLUSTER					 = 6;
+}
+
+// 请求
+message ClusterRequest{
+	ClusterActionType act    = 1;
+	ClusterServerInfo data   = 2;
+}
+
+message ClusterServerInfo{
+	ClusterServerType type 		= 1;
+	string ip = 2;
+	int32	port = 3;
+}
+
+// 操作结果状态
+enum Status{
+    FAIL		     = 0;
+    SUCCESS          = 1;
+}
+
+message LoginRequest{
+	string user_name = 1;
+	string password = 2;
+	ClientType client_type = 3;
+	string client_version = 4;
+}
+
+message LoginResponse{
+	Status status = 1;
+	string message = 2;
+	LoginData data = 3;
+}
+
+message LoginData{
+	uint32 server_time = 1;
+	Info user_info = 2;	
+}
+
+
+message LogoutRequest{
+}
+
+message LogoutResponse{
+	Status status = 1;
+	string message = 2;
+}

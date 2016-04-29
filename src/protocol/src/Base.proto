@@ -1,5 +1,5 @@
 syntax = "proto3";
-package Base;
+package protocol;
 option java_package = "com.z.ki.protobuf";
 option optimize_for = SPEED;
 
@@ -38,17 +38,17 @@ enum MessageCmdID{
 
 // 中转服务命令
 enum TransferServiceCmdID{
-    CID_TRANSFER					   = 0;  //  消息中转
+    TRANSFER					   = 0;  //  消息中转
 }
 
 // 其他命令
 enum OtherCmdID{
-    CID_OTHER_HEARTBEAT		= 0;	//心跳
+    HEARTBEAT		= 0;	//心跳
 }
 
 // 消息类型
-enum MsgType{
-	MSG_TYPE_SINGLE_TEXT    = 0;  //  文本信息
+enum MessageType{
+	SINGLE_TEXT    = 0;  //  文本信息
 }
 
 

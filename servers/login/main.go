@@ -13,6 +13,8 @@ import (
 	"net"
 	"os"
 	"runtime"
+	// "strconv"
+	"log"
 	"time"
 )
 
@@ -58,56 +60,84 @@ func main() {
 
 	// http.Handle("/", server)
 
-	lres := &protocol.LoginResponse{
-		status: Status_SUCCESS,
-	}
+	// lres := &protocol.LoginResponse{
+	// 	Status:  protocol.Status_SUCCESS,
+	// 	Message: "成功",
+	// 	Data: &protocol.LoginData{
+	// 		ServerTime: 1,
+	// 		UserInfo: &protocol.Info{
+	// 			Uid:       1,
+	// 			Gender:    1,
+	// 			NickName:  "昵称",
+	// 			AvatarUrl: "http://www.tzrl.com",
+	// 		},
+	// 	},
+	// }
 
-	data, err := proto.Marshal(lres)
-	checkError(err)
+	// data, err := proto.Marshal(lres)
+	// checkError(err)
+	// L.Info(strconv.Itoa(len(data)))
+
+	// encode := &protocol.LoginResponse{}
+	// err = proto.Unmarshal(data, encode)
+	// checkError(err)
+	// L.Debug("%s %d", encode.Message, encode.Status)
+	// L.Debug("%s %d", encode.GetData().GetUserInfo().NickName, encode.GetData().ServerTime)
 
 	// var res LoginResponse
 	// res.status = Status_SUCCESS
-	L.Debug("%s", res.status)
+	// L.Debug("%s", res.status)
 
-	service := ":9001"
+	service := ":9002"
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
 	checkError(err)
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	checkError(err)
+	L.Info("服务监听端口:9002")
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
+			L.Error("请求失败")
 			continue
 		}
 		go handleClient(conn)
 	}
-	L.Info("Serving at localhost:9001")
 	// log.Fatal(http.ListenAndServe(":9001", nil))
 }
 
 func handleClient(conn net.Conn) {
-	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
-	request := make([]byte, 128)
 	defer conn.Close()
+	L.Debug("收到请求")
+	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
+	request := make([]byte, 1024)
 	for {
 		read_len, err := conn.Read(request)
 		if err != nil {
 			L.Error(err.Error())
 			break
 		}
-		L.Debug(string(request))
+		L.Debug("收到消息,长度：%d", read_len)
+
+		data := request[:read_len]
+		encode := &protocol.LoginResponse{}
+		err = proto.Unmarshal(data, encode)
+		checkError(err)
+		L.Debug("%s %d", encode.Message, encode.Status)
+		L.Debug("%s %d", encode.GetData().GetUserInfo().NickName, encode.GetData().ServerTime)
+		// L.Debug(string(request))
 		if read_len == 0 {
 			break
 		} else {
 			conn.Write([]byte(time.Now().String()))
 		}
-		request = make([]byte, 128)
+		request = make([]byte, 1024)
 	}
 }
 
 func checkError(err error) {
 	if err != nil {
 		L.Critical("Fatal error: %s", err.Error())
+		log.Fatal(err)
 		os.Exit(1)
 	}
 }
