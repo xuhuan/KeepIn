@@ -2,6 +2,7 @@ syntax = "proto3";
 package protocol.Message;
 import "Base.proto";
 option java_package = "com.z.ki.protobuf";
+option go_package = "protocol";
 option optimize_for = SPEED;
 
 message MessageData{

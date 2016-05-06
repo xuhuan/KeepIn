@@ -8,12 +8,13 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 )
 
 var L = utils.L
 
 func main() {
-	service := ":9002"
+	service := "localhost:9200"
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
 	checkError(err)
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
@@ -25,7 +26,7 @@ func main() {
 		Message: "成功",
 		Data: &protocol.LoginData{
 			ServerTime: 1,
-			UserInfo: &protocol.Info{
+			UserInfo: &protocol.UserInfo{
 				Uid:       1,
 				Gender:    1,
 				NickName:  "昵称",
@@ -34,6 +35,7 @@ func main() {
 		},
 	}
 	data, err := proto.Marshal(lres)
+	L.Debug(strconv.Itoa(len(data)))
 	checkError(err)
 
 	_, err = conn.Write(data)

@@ -30,7 +30,7 @@ func runServe(ctx *cli.Context) {
 	appConf, err := config.NewConfig("ini", "conf/app.conf")
 	utils.CheckError(err)
 
-	addr := ":" + appConf.String("server::port")
+	addr := "localhost:" + appConf.String("server::port")
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	utils.CheckError(err)
 	listener, err := net.ListenTCP("tcp", tcpAddr)
@@ -60,16 +60,36 @@ func handleClient(conn net.Conn) {
 		L.Debug("收到消息,长度：%d", read_len)
 
 		data := request[:read_len]
-		encode := &protocol.LoginResponse{}
+		encode := &protocol.ClusterRequest{}
 		err = proto.Unmarshal(data, encode)
 		utils.CheckError(err)
-		L.Debug("%s %d", encode.Message, encode.Status)
-		L.Debug("%s %d", encode.GetData().GetUserInfo().NickName, encode.GetData().ServerTime)
-		// L.Debug(string(request))
+		L.Debug("%s", encode.Act)
+		serverInfo := encode.GetData()
+		if serverInfo != nil {
+			L.Debug("%s", serverInfo[0].Ip)
+		}
 		if read_len == 0 {
 			break
 		} else {
-			conn.Write([]byte(time.Now().String()))
+			switch encode.Act {
+			case protocol.ClusterActionType_GET_SERVERS:
+				lres := &protocol.ClusterResponse{
+					Status: protocol.Status_SUCCESS,
+					Data: []*protocol.ClusterServerInfo{
+						&protocol.ClusterServerInfo{
+							Type: protocol.ClusterServerType_LOGIN,
+							Ip:   "188.66.66.33",
+							Port: 8888,
+						},
+					},
+				}
+				wdata, err := proto.Marshal(lres)
+				utils.CheckError(err)
+				conn.Write(wdata)
+			default:
+				conn.Write([]byte(time.Now().String()))
+
+			}
 		}
 		request = make([]byte, 1024)
 	}

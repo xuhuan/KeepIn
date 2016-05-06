@@ -65,3 +65,9 @@ enum ClientType{
 }
 
 
+// 操作结果状态
+enum Status{
+    FAIL             = 0;
+    SUCCESS          = 1;
+}
+
