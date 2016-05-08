@@ -4,12 +4,14 @@ import (
 	"github.com/astaxie/beego/config"
 	"github.com/codegangsta/cli"
 	"github.com/golang/protobuf/proto"
+	"github.com/google/uuid"
 	"github.com/xuhuan/keepin/protocol"
 	"github.com/xuhuan/keepin/utils"
 	// "log"
 	"net"
 	// "os"
 	// "runtime"
+	"strconv"
 	"time"
 )
 
@@ -24,6 +26,16 @@ var CmdServe = cli.Command{
 		utils.StringFlag("config, c", "conf/app.conf", "configuration file path"),
 	},
 }
+
+type ServerInfo struct {
+	uuid       uuid.UUID
+	alive      bool
+	ip         string
+	port       int32
+	serverType protocol.ClusterServerType
+}
+
+var Servers = []ServerInfo{}
 
 func runServe(ctx *cli.Context) {
 	L.Info("Cluster 服务启动")
@@ -86,6 +98,9 @@ func handleClient(conn net.Conn) {
 				wdata, err := proto.Marshal(lres)
 				utils.CheckError(err)
 				conn.Write(wdata)
+			case protocol.ClusterActionType_REG_SERVER:
+				regServer(encode)
+				conn.Write([]byte(time.Now().String()))
 			default:
 				conn.Write([]byte(time.Now().String()))
 
@@ -93,6 +108,32 @@ func handleClient(conn net.Conn) {
 		}
 		request = make([]byte, 1024)
 	}
+}
+
+func regServer(servers *protocol.ClusterRequest) {
+	if servers.GetData() != nil {
+		serverInfo := servers.GetData()[0]
+		if !existServer(serverInfo.Ip + ":" + strconv.Itoa(int(serverInfo.Port))) {
+			Servers = append(Servers, ServerInfo{
+				uuid:       uuid.New(),
+				alive:      true,
+				ip:         serverInfo.Ip,
+				port:       serverInfo.Port,
+				serverType: serverInfo.Type,
+			})
+		}
+	}
+	L.Debug(strconv.Itoa(len(Servers)))
+	L.Debug(Servers[0].ip)
+}
+
+func existServer(addr string) bool {
+	for i := 0; i < len(Servers); i++ {
+		if Servers[i].ip+":"+strconv.Itoa(int(Servers[i].port)) == addr {
+			return true
+		}
+	}
+	return false
 }
 
 func Run() {
