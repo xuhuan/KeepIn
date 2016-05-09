@@ -57,7 +57,9 @@ func Test_RequestGetServers(t *testing.T) {
 		}
 		t.Log("接收数据")
 		t.Log(rdata.Status)
-		t.Log(rdata.GetData()[0].Ip)
+		if len(rdata.GetData()) > 0 {
+			t.Log(rdata.GetData()[0].Ip)
+		}
 		t.Log("测试成功")
 		break
 	}
@@ -227,7 +229,7 @@ func Test_RequestGetLoginServers(t *testing.T) {
 
 	lres := &protocol.ClusterRequest{
 		Act: protocol.ClusterActionType_GET_SERVERS,
-		ServerType: [...]ClusterServerType{
+		ServerType: []protocol.ClusterServerType{
 			protocol.ClusterServerType_LOGIN,
 			protocol.ClusterServerType_DB,
 		},
@@ -272,8 +274,11 @@ func Test_RequestGetLoginServers(t *testing.T) {
 		}
 		t.Log("接收数据")
 		t.Log(rdata.Status)
-		t.Log(rdata.GetData()[0].Uuid)
-		t.Log(rdata.GetData()[0].Ip)
+		t.Log(len(rdata.GetData()))
+		for _, d := range rdata.GetData() {
+			t.Log(d.Ip)
+			t.Log(d.LastHeartbeatTime)
+		}
 		t.Log("测试成功")
 		break
 	}

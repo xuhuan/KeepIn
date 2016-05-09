@@ -52,10 +52,10 @@ message ClusterResponse{
 }
 
 message ClusterServerInfo{
-	string uuid            = 1;	//唯一值
-	ClusterServerType type = 2; //服务器类型
-	string ip              = 3; //服务器IP
-	int32	port           = 4; //服务器端口
-	int32	currentLoad    = 5; //当前负载值
+	ClusterServerType type   = 1; //服务器类型
+	string ip                = 2; //服务器IP
+	int32 port               = 3; //服务器端口
+	int32 currentLoad        = 4; //当前负载值
+	string lastHeartbeatTime = 5; //最后心跳时间
 }
 

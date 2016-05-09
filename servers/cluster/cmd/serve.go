@@ -4,7 +4,7 @@ import (
 	"github.com/astaxie/beego/config"
 	"github.com/codegangsta/cli"
 	"github.com/golang/protobuf/proto"
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
 	"github.com/xuhuan/keepin/protocol"
 	"github.com/xuhuan/keepin/utils"
 	// "log"
@@ -17,6 +17,8 @@ import (
 
 var L = utils.L
 
+var aliveTimeout = time.Minute
+
 var CmdServe = cli.Command{
 	Name:        "serve",
 	Usage:       "start server cluster ",
@@ -27,13 +29,14 @@ var CmdServe = cli.Command{
 	},
 }
 
+// 服务器信息
 type ServerInfo struct {
-	uuid        string
-	alive       bool
-	ip          string
-	port        int32
-	currentLoad int32
-	serverType  protocol.ClusterServerType
+	alive             bool
+	ip                string
+	port              int32
+	currentLoad       int32
+	serverType        protocol.ClusterServerType
+	lastHeartbeatTime string
 }
 
 type ServerList struct {
@@ -41,7 +44,7 @@ type ServerList struct {
 	data       map[string]ServerInfo
 }
 
-// var Servers = []ServerInfo{}
+// 服务器列表
 var Servers = make(map[string]ServerList)
 
 func runServe(ctx *cli.Context) {
@@ -92,19 +95,6 @@ func handleClient(conn net.Conn) {
 		} else {
 			switch encode.Act {
 			case protocol.ClusterActionType_GET_SERVERS:
-				// lres := &protocol.ClusterResponse{
-				// 	Status: protocol.Status_SUCCESS,
-				// 	Data: []*protocol.ClusterServerInfo{
-				// 		{
-				// 			Type: protocol.ClusterServerType_LOGIN,
-				// 			Ip:   "188.66.66.33",
-				// 			Port: 8888,
-				// 		},
-				// 	},
-				// }
-				// wdata, err := proto.Marshal(lres)
-				// utils.CheckError(err)
-				// conn.Write(wdata)
 				conn.Write(getServer(encode.ServerType))
 			case protocol.ClusterActionType_REG_SERVER:
 				regServer(encode)
@@ -118,6 +108,7 @@ func handleClient(conn net.Conn) {
 	}
 }
 
+// 输出服务器状态
 func printStatus() {
 	for k, v := range Servers {
 		L.Info("服务器类型：%s，主机数量：%d", k, len(v.data))
@@ -132,37 +123,40 @@ func printStatus() {
 	}
 }
 
-func getServer(serverType protocol.ClusterServerType) []byte {
-	L.Debug("%s", serverType.String())
-	var _server ServerInfo
-	i := 0
-	for _, server := range Servers[serverType.String()].data {
-		if i == 0 {
-			_server = server
-		} else {
-			if server.currentLoad < _server.currentLoad {
+// 获取多个指定类型的负载最小服务器信息
+func getServer(serverTypes []protocol.ClusterServerType) []byte {
+	data := []*protocol.ClusterServerInfo{}
+	for _, serverType := range serverTypes {
+		var _server ServerInfo
+		i := 0
+		for _, server := range Servers[serverType.String()].data {
+			if i == 0 {
 				_server = server
+			} else {
+				if server.currentLoad < _server.currentLoad {
+					_server = server
+				}
 			}
+			i++
 		}
-		i++
+		data = append(data, &protocol.ClusterServerInfo{
+			Type:              _server.serverType,
+			Ip:                _server.ip,
+			Port:              _server.port,
+			CurrentLoad:       _server.currentLoad,
+			LastHeartbeatTime: _server.lastHeartbeatTime,
+		})
 	}
 	lres := &protocol.ClusterResponse{
 		Status: protocol.Status_SUCCESS,
-		Data: []*protocol.ClusterServerInfo{
-			{
-				Type:        _server.serverType,
-				Ip:          _server.ip,
-				Port:        _server.port,
-				CurrentLoad: _server.currentLoad,
-				Uuid:        _server.uuid,
-			},
-		},
+		Data:   data,
 	}
 	wdata, err := proto.Marshal(lres)
 	utils.CheckError(err)
 	return wdata
 }
 
+// 注册服务器
 func regServer(server *protocol.ClusterRequest) {
 	if server.GetData() != nil {
 		serverInfo := server.GetData()[0]
@@ -174,42 +168,37 @@ func regServer(server *protocol.ClusterRequest) {
 			}
 		}
 		Servers[serverInfo.Type.String()].data[utils.Md5(serverInfo.Ip+":"+strconv.Itoa(int(serverInfo.Port)))] = ServerInfo{
-			uuid:        uuid.New().String(),
-			alive:       true,
-			ip:          serverInfo.Ip,
-			port:        serverInfo.Port,
-			serverType:  serverInfo.Type,
-			currentLoad: serverInfo.CurrentLoad,
+			alive:             true,
+			ip:                serverInfo.Ip,
+			port:              serverInfo.Port,
+			serverType:        serverInfo.Type,
+			currentLoad:       serverInfo.CurrentLoad,
+			lastHeartbeatTime: time.Now().Format("2006-01-02 15:04:05"),
 		}
-
-		// if !existServer(serverInfo) {
-		// 	L.Debug(serverInfo.Type.String())
-		// 	L.Debug(uuid.New().String())
-		// 	L.Debug(strconv.Itoa(len(Servers)))
-		// 	// L.Debug(strconv.Itoa(len(Servers[serverInfo.Type.String()].data)))
-		// 	Servers[serverInfo.Type.String()].data[utils.Md5(serverInfo.Ip+":"+strconv.Itoa(int(serverInfo.Port)))] = ServerInfo{
-		// 		uuid:       uuid.New().String(),
-		// 		alive:      true,
-		// 		ip:         serverInfo.Ip,
-		// 		port:       serverInfo.Port,
-		// 		serverType: serverInfo.Type,
-		// 	}
-		// 	// _servers := Servers[serverInfo.Type.String()]
-		// 	// _servers.data = append(_servers.data, ServerInfo{
-		// 	// 	uuid:       uuid.New().String(),
-		// 	// 	alive:      true,
-		// 	// 	ip:         serverInfo.Ip,
-		// 	// 	port:       serverInfo.Port,
-		// 	// 	serverType: serverInfo.Type,
-		// 	// })
-		// 	// Servers[serverInfo.Type.String()] = _servers
-		// 	L.Debug(strconv.Itoa(len(Servers[serverInfo.Type.String()].data)))
-		// }
 	}
 	printStatus()
-	// L.Debug(strconv.Itoa(len(Servers)))
-	// L.Debug(Servers[0].uuid)
-	// L.Debug(strconv.Itoa(int(Servers[0].port)))
+	checkAlive()
+}
+
+// 检测是否存活
+func checkAlive() {
+	for k, v := range Servers {
+		L.Info("服务器类型：%s，主机数量：%d，检测开始...", k, len(v.data))
+		isLive := 0
+		for id, server := range v.data {
+			t, err := time.Parse("2006-01-02 15:04:05", server.lastHeartbeatTime)
+			utils.CheckError(err)
+			if t.Add(aliveTimeout).Before(time.Now()) {
+				server.alive = false
+			}
+			if server.alive {
+				isLive++
+			}
+			v.data[id] = server
+		}
+		Servers[k] = v
+		L.Info("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
+	}
 }
 
 // // 验证时候已经存在
@@ -236,6 +225,7 @@ func regServer(server *protocol.ClusterRequest) {
 
 func Run() {
 	L.Info("Cluster 服务启动")
+	L.Info(time.Now().Format("2006-01-02 15:04:05"))
 	appConf, err := config.NewConfig("ini", "conf/app.conf")
 	utils.CheckError(err)
 
