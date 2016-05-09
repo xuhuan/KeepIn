@@ -6,6 +6,6 @@ option optimize_for = SPEED;
 
 message TransferMsg{
 	uint32 from_uid = 1;
-	uint32 to_uid = 2;
-	string msg = 3;
+	uint32 to_uid   = 2;
+	string msg      = 3;
 }

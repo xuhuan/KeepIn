@@ -123,11 +123,17 @@ deploy_protobuf(){
 	cp $DST_DIR/go/* $2/
 }
 
+deploy_go_protobuf(){
+	#go
+	cp $DST_DIR/go/* ../../protocol/
+}
+
 print_help() {
 	echo "Usage: "
 	echo "  $0 init ---  install protobuf"
 	echo "  $0 build --- build all"
 	echo "  $0 deploy_lib floder --- deploy lib to floder"
+	echo "  $0 deploy_go floder --- deploy go to floder"
 	echo "  $0 deploy floder --- deploy to floder"
 }
 
@@ -161,6 +167,10 @@ case $1 in
 		echo $2
 		echo "deploy lib..."
 		deploy_lib $2
+		;;
+	deploy_go)
+		echo "deploy go..."
+		deploy_go_protobuf
 		;;
 	*)
 		print_help

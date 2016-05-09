@@ -79,9 +79,109 @@ func Test_RequestRegistServer(t *testing.T) {
 	lres := &protocol.ClusterRequest{
 		Act: protocol.ClusterActionType_REG_SERVER,
 		Data: []*protocol.ClusterServerInfo{
-			&protocol.ClusterServerInfo{
-				Type: protocol.ClusterServerType_LOGIN,
-				Ip:   "188.66.66.33",
+			{
+				Type:        protocol.ClusterServerType_LOGIN,
+				Ip:          "188.66.66.133",
+				Port:        8888,
+				CurrentLoad: 66,
+			},
+		},
+	}
+	data, err := proto.Marshal(lres)
+	t.Log(strconv.Itoa(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = conn.Write(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			break
+		}
+		t.Log("接收数据")
+		t.Log(string(buf[:n]))
+		t.Log("测试成功")
+		break
+	}
+}
+
+func Test_RequestRegistLoginServer(t *testing.T) {
+	service := "localhost:9200"
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	defer conn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("连接服务器")
+
+	lres := &protocol.ClusterRequest{
+		Act: protocol.ClusterActionType_REG_SERVER,
+		Data: []*protocol.ClusterServerInfo{
+			{
+				Type:        protocol.ClusterServerType_LOGIN,
+				Ip:          "188.66.66.33",
+				Port:        8888,
+				CurrentLoad: 5,
+			},
+		},
+	}
+	data, err := proto.Marshal(lres)
+	t.Log(strconv.Itoa(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = conn.Write(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			break
+		}
+		t.Log("接收数据")
+		t.Log(string(buf[:n]))
+		t.Log("测试成功")
+		break
+	}
+}
+
+func Test_RequestRegistDbServer(t *testing.T) {
+	service := "localhost:9200"
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	defer conn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("连接服务器")
+
+	lres := &protocol.ClusterRequest{
+		Act: protocol.ClusterActionType_REG_SERVER,
+		Data: []*protocol.ClusterServerInfo{
+			{
+				Type: protocol.ClusterServerType_DB,
+				Ip:   "188.66.66.133",
 				Port: 8888,
 			},
 		},
@@ -107,6 +207,73 @@ func Test_RequestRegistServer(t *testing.T) {
 		}
 		t.Log("接收数据")
 		t.Log(string(buf[:n]))
+		t.Log("测试成功")
+		break
+	}
+}
+
+func Test_RequestGetLoginServers(t *testing.T) {
+	service := "localhost:9200"
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	defer conn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("连接服务器")
+
+	lres := &protocol.ClusterRequest{
+		Act: protocol.ClusterActionType_GET_SERVERS,
+		ServerType: [...]ClusterServerType{
+			protocol.ClusterServerType_LOGIN,
+			protocol.ClusterServerType_DB,
+		},
+	}
+	data, err := proto.Marshal(lres)
+	t.Log(strconv.Itoa(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = conn.Write(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// for {
+	// 	buf := make([]byte, 1024)
+	// 	n, err := conn.Read(buf)
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// 	if n == 0 {
+	// 		break
+	// 	}
+	// 	t.Log("接收数据")
+	// 	t.Log(string(buf[:n]))
+	// 	t.Log("测试成功")
+	// 	break
+	// }
+	for {
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			break
+		}
+		rdata := &protocol.ClusterResponse{}
+		err = proto.Unmarshal(buf[:n], rdata)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log("接收数据")
+		t.Log(rdata.Status)
+		t.Log(rdata.GetData()[0].Uuid)
+		t.Log(rdata.GetData()[0].Ip)
 		t.Log("测试成功")
 		break
 	}

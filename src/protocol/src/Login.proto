@@ -8,20 +8,20 @@ option optimize_for = SPEED;
 
 
 message LoginRequest{
-	string user_name = 1;
-	string password = 2;
+	string user_name            = 1;
+	string password             = 2;
 	Base.ClientType client_type = 3;
-	string client_version = 4;
+	string client_version       = 4;
 }
 
 message LoginResponse{
 	Base.Status status = 1;
-	string message = 2;
-	LoginData data = 3;
+	string message     = 2;
+	LoginData data     = 3;
 }
 
 message LoginData{
-	uint32 server_time = 1;
+	uint32 server_time      = 1;
 	User.UserInfo user_info = 2;	
 }
 
@@ -31,5 +31,5 @@ message LogoutRequest{
 
 message LogoutResponse{
 	Base.Status status = 1;
-	string message = 2;
+	string message     = 2;
 }

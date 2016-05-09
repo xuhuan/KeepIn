@@ -6,11 +6,11 @@ option go_package = "protocol";
 option optimize_for = SPEED;
 
 message MessageData{
-	uint32 from_uid = 1;				//  消息发送方
-	uint32 to_uid = 2;				    //  消息接受方
-	uint32 msg_id = 3;					//  消息ID
-	uint32 create_time = 4; 			//  创建日期
+	uint32 from_uid           = 1;				//  消息发送方
+	uint32 to_uid             = 2;				    //  消息接受方
+	uint32 msg_id             = 3;					//  消息ID
+	uint32 create_time        = 4; 			//  创建日期
 	Base.MessageType msg_type = 5;		//  消息类型
-	bytes msg_data = 6;				//  消息内容
-	bytes attach_data = 20;			//  附加内容
+	bytes msg_data            = 6;				//  消息内容
+	bytes attach_data         = 20;			//  附加内容
 }
