@@ -17,7 +17,9 @@ import (
 
 var L = utils.L
 
-var aliveTimeout = time.Minute
+var aliveTimeout = time.Second * 60
+var internal = time.Second * 30
+var dateFormat = "2006-01-02 15:04:05"
 
 var CmdServe = cli.Command{
 	Name:        "serve",
@@ -85,41 +87,62 @@ func handleClient(conn net.Conn) {
 		encode := &protocol.ClusterRequest{}
 		err = proto.Unmarshal(data, encode)
 		utils.CheckError(err)
-		L.Debug("%s", encode.Act)
-		serverInfo := encode.GetData()
-		if serverInfo != nil {
-			L.Debug("%s", serverInfo[0].Ip)
-		}
 		if read_len == 0 {
 			break
-		} else {
-			switch encode.Act {
-			case protocol.ClusterActionType_GET_SERVERS:
-				conn.Write(getServer(encode.ServerType))
-			case protocol.ClusterActionType_REG_SERVER:
-				regServer(encode)
-				conn.Write([]byte(time.Now().String()))
-			default:
-				conn.Write([]byte(time.Now().String()))
-
-			}
 		}
+
+		switch encode.Act {
+		case protocol.ClusterActionType_GET_SERVERS:
+			conn.Write(getServer(encode.ServerType))
+		case protocol.ClusterActionType_REG_SERVER:
+			conn.Write(regServer(encode))
+		case protocol.ClusterActionType_HEARTBEAT:
+			conn.Write(heartbeat(encode))
+		default:
+			conn.Write([]byte(time.Now().String()))
+		}
+
 		request = make([]byte, 1024)
 	}
+}
+
+// 更新心跳时间
+func heartbeat(server *protocol.ClusterRequest) []byte {
+	if server.GetData() != nil {
+		serverInfo := server.GetData()[0]
+		_, ok := Servers[serverInfo.Type.String()]
+		if ok {
+			Servers[serverInfo.Type.String()].data[utils.Md5(serverInfo.Ip+":"+strconv.Itoa(int(serverInfo.Port)))] = ServerInfo{
+				alive:             true,
+				ip:                serverInfo.Ip,
+				port:              serverInfo.Port,
+				serverType:        serverInfo.Type,
+				currentLoad:       serverInfo.CurrentLoad,
+				lastHeartbeatTime: time.Now().Format(dateFormat),
+			}
+		}
+	}
+
+	lres := &protocol.ClusterResponse{
+		Status: protocol.Status_SUCCESS,
+	}
+	wdata, err := proto.Marshal(lres)
+	utils.CheckError(err)
+	return wdata
 }
 
 // 输出服务器状态
 func printStatus() {
 	for k, v := range Servers {
-		L.Info("服务器类型：%s，主机数量：%d", k, len(v.data))
+		L.Debug("服务器类型：%s，主机数量：%d", k, len(v.data))
 		isLive := 0
 		for _, server := range v.data {
-			L.Info("服务器状态：\nIP：%s\n端口：%d\n存活状态:%t\n负载：%d", server.ip, server.port, server.alive, server.currentLoad)
+			L.Debug("服务器状态：\nIP：%s\n端口：%d\n存活状态:%t\n负载：%d", server.ip, server.port, server.alive, server.currentLoad)
 			if server.alive {
 				isLive++
 			}
 		}
-		L.Info("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
+		L.Debug("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
 	}
 }
 
@@ -157,7 +180,7 @@ func getServer(serverTypes []protocol.ClusterServerType) []byte {
 }
 
 // 注册服务器
-func regServer(server *protocol.ClusterRequest) {
+func regServer(server *protocol.ClusterRequest) []byte {
 	if server.GetData() != nil {
 		serverInfo := server.GetData()[0]
 		_, ok := Servers[serverInfo.Type.String()]
@@ -173,22 +196,41 @@ func regServer(server *protocol.ClusterRequest) {
 			port:              serverInfo.Port,
 			serverType:        serverInfo.Type,
 			currentLoad:       serverInfo.CurrentLoad,
-			lastHeartbeatTime: time.Now().Format("2006-01-02 15:04:05"),
+			lastHeartbeatTime: time.Now().Format(dateFormat),
 		}
 	}
-	printStatus()
-	checkAlive()
+	// printStatus()
+
+	lres := &protocol.ClusterResponse{
+		Status: protocol.Status_SUCCESS,
+	}
+	wdata, err := proto.Marshal(lres)
+	utils.CheckError(err)
+	return wdata
+}
+
+// 定时检查所有服务器最后心跳时间是否超过1分钟，超过的话则为未存活，因为所有服务器间隔30秒要向服务器发送心跳包
+func schedule() {
+	t := time.NewTimer(internal)
+	for {
+		<-t.C
+		checkAlive()
+		t.Reset(internal)
+		// break
+	}
 }
 
 // 检测是否存活
 func checkAlive() {
 	for k, v := range Servers {
-		L.Info("服务器类型：%s，主机数量：%d，检测开始...", k, len(v.data))
+		L.Debug("服务器类型：%s，主机数量：%d，检测开始...", k, len(v.data))
 		isLive := 0
 		for id, server := range v.data {
-			t, err := time.Parse("2006-01-02 15:04:05", server.lastHeartbeatTime)
+			t, err := time.Parse(dateFormat, server.lastHeartbeatTime)
 			utils.CheckError(err)
-			if t.Add(aliveTimeout).Before(time.Now()) {
+			t = t.Add(aliveTimeout)
+			now, _ := time.Parse(dateFormat, time.Now().Format(dateFormat))
+			if t.Before(now) {
 				server.alive = false
 			}
 			if server.alive {
@@ -197,38 +239,17 @@ func checkAlive() {
 			v.data[id] = server
 		}
 		Servers[k] = v
-		L.Info("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
+		L.Debug("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
 	}
 }
 
-// // 验证时候已经存在
-// func existServer(server *protocol.ClusterServerInfo) bool {
-// 	L.Debug(utils.Md5(server.Ip + ":" + strconv.Itoa(int(server.Port))))
-// 	if len(Servers[server.Type.String()].data) == 0 {
-// 		Servers[server.Type.String()] = ServerList{
-// 			serverType: server.Type,
-// 			data:       make(map[string]ServerInfo),
-// 		}
-// 		return false
-// 	}
-// 	d := Servers[server.Type.String()].data
-// 	for i := 0; i < len(d); i++ {
-// 		L.Debug(utils.Md5(server.Ip + ":" + strconv.Itoa(int(server.Port))))
-// 		_, ok := d[utils.Md5(server.Ip+":"+strconv.Itoa(int(server.Port)))]
-// 		return ok
-// 		// if ok {
-// 		// 	return true
-// 		// }
-// 	}
-// 	return false
-// }
-
 func Run() {
 	L.Info("Cluster 服务启动")
-	L.Info(time.Now().Format("2006-01-02 15:04:05"))
+	L.Info(time.Now().Format(dateFormat))
 	appConf, err := config.NewConfig("ini", "conf/app.conf")
 	utils.CheckError(err)
 
+	go schedule()
 	addr := ":" + appConf.String("server::port")
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	utils.CheckError(err)

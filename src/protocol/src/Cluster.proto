@@ -16,15 +16,10 @@ option optimize_for = SPEED;
 
 // 请求操作类型
 enum ClusterActionType{
-	UNKNOWN            = 0; //go里面如果只传送单个枚举且枚举值是0的时候，通过 proto.Marshal 转换后的数据长度为0，所以这里也算是当作占位用
-	REG_SERVER         = 1;
-	GET_SERVERS        = 2;
-//	GET_LOGIN_SERVER   = 3;
-//	GET_MESSAGE_SERVER = 4;
-//	GET_DB_SERVER      = 5;
-//	GET_ROUTE_SERVER   = 6;
-//	GET_FILE_SERVER    = 7;
-//	GET_CLUSTER_SERVER = 8;
+	UNKNOWN     = 0; //go里面如果只传送单个枚举且枚举值是0的时候，通过 proto.Marshal 转换后的数据长度为0，所以这里也算是当作占位用
+	REG_SERVER  = 1;
+	GET_SERVERS = 2;
+	HEARTBEAT   = 3; //心跳
 }
 
 // 服务器类型
@@ -40,12 +35,12 @@ enum ClusterServerType{
 
 // 请求
 message ClusterRequest{
-	ClusterActionType act           = 1;
-	repeated ClusterServerInfo data = 2;
+	ClusterActionType act                 = 1;
+	repeated ClusterServerInfo data       = 2;
 	repeated ClusterServerType serverType = 3;
 }
 
-// 请求
+// 应答
 message ClusterResponse{
 	Base.Status status              = 1;
 	repeated ClusterServerInfo data = 2;
