@@ -7,6 +7,13 @@ option go_package = "protocol";
 option optimize_for = SPEED;
 
 
+// 请求操作类型
+enum LoginActionType{
+	UNKNOWN   = 0; //go里面如果只传送单个枚举且枚举值是0的时候，通过 proto.Marshal 转换后的数据长度为0，所以这里也算是当作占位用
+	LOGIN     = 1;
+	LOGIN_OUT = 2;
+}
+
 message LoginRequest{
 	string user_name            = 1;
 	string password             = 2;
@@ -15,9 +22,10 @@ message LoginRequest{
 }
 
 message LoginResponse{
-	Base.Status status = 1;
-	string message     = 2;
-	LoginData data     = 3;
+	Base.Status status               = 1;
+	string message                   = 2;
+	LoginData data                   = 3;
+	repeated Base.ServerInfo servers = 4;
 }
 
 message LoginData{

@@ -4,48 +4,6 @@ option java_package = "com.z.ki.protobuf";
 option go_package = "protocol";
 option optimize_for = SPEED;
 
-// 服务ID，对不同的协议进行归类
-enum ServiceID{
-    LOGIN            = 0;           // 登陆相关
-    FRIEND           = 1;		    // 好友相关
-    MESSAGE          = 2;           // 消息相关
-    TRNASFER_SERVICE = 3;	    	// 中转服务
-    USER             = 4;            // 用户相关
-    OTHER            = 5;	    	// 杂
-}
-
-// 登陆相关命令
-enum LoginCmdID{
-    LOGIN_REQ        = 0;	// 收到登录
-    LOGIN_RES        = 1;	// 请求登录
-    LOGOUT_REQ       = 2;	// 收到登出
-    LOGOUT_RES       = 3; 	// 请求登出
-    DEVICE_TOKEN_REQ = 4;  // 收到设备令牌
-    DEVICE_TOKEN_RES = 5;  // 请求设备令牌
-    MSG_SERVER_REQ   = 6; 	// 收到消息服务器信息
-    MSG_SERVER_RES   = 7;	// 请求消息服务器信息
-}
-
-// 好友、会话等相关命令。
-enum FriendCmdID{
-    CID_FRIEND_REQ_ALL = 0;	  // 收到所有好友列表
-    CID_FRIEND_RES_ALL = 1;	  // 请求所有好友列表
-}
-
-// 消息相关命令
-enum MessageCmdID{
-    CID_MSG_DATA = 0;  // 消息内容
-}
-
-// 中转服务命令
-enum TransferServiceCmdID{
-    TRANSFER = 0;  //  消息中转
-}
-
-// 其他命令
-enum OtherCmdID{
-    HEARTBEAT = 0;	//心跳
-}
 
 // 消息类型
 enum MessageType{
@@ -71,3 +29,21 @@ enum Status{
     SUCCESS = 1;
 }
 
+// 服务器类型
+enum ServerType{
+    LOGIN   = 0;
+    ROUTE   = 1;
+    MESSAGE = 2;
+    DB      = 3;
+    PUSH    = 4;
+    FILE    = 5;
+    CLUSTER = 6;
+}
+
+message ServerInfo{
+    ServerType type          = 1; //服务器类型
+    string ip                = 2; //服务器IP
+    int32 port               = 3; //服务器端口
+    int32 currentLoad        = 4; //当前负载值
+    string lastHeartbeatTime = 5; //最后心跳时间
+}
