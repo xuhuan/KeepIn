@@ -19,7 +19,6 @@ enum ClusterActionType{
 	UNKNOWN     = 0; //go里面如果只传送单个枚举且枚举值是0的时候，通过 proto.Marshal 转换后的数据长度为0，所以这里也算是当作占位用
 	REG_SERVER  = 1;
 	GET_SERVERS = 2;
-	HEARTBEAT   = 3; //心跳
 }
 
 // 服务器类型

@@ -51,10 +51,12 @@ var Servers = make(map[string]ServerList)
 
 func runServe(ctx *cli.Context) {
 	L.Info("Cluster 服务启动")
+	L.Info(time.Now().Format(dateFormat))
 	appConf, err := config.NewConfig("ini", "conf/app.conf")
 	utils.CheckError(err)
 
-	addr := "localhost:" + appConf.String("server::port")
+	go schedule()
+	addr := ":" + appConf.String("server::port")
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	utils.CheckError(err)
 	listener, err := net.ListenTCP("tcp", tcpAddr)
@@ -96,39 +98,12 @@ func handleClient(conn net.Conn) {
 			conn.Write(getServer(encode.ServerType))
 		case protocol.ClusterActionType_REG_SERVER:
 			conn.Write(regServer(encode))
-		case protocol.ClusterActionType_HEARTBEAT:
-			conn.Write(heartbeat(encode))
 		default:
 			conn.Write([]byte(time.Now().String()))
 		}
 
 		request = make([]byte, 1024)
 	}
-}
-
-// 更新心跳时间
-func heartbeat(server *protocol.ClusterRequest) []byte {
-	if server.GetData() != nil {
-		serverInfo := server.GetData()[0]
-		_, ok := Servers[serverInfo.Type.String()]
-		if ok {
-			Servers[serverInfo.Type.String()].data[utils.Md5(serverInfo.Ip+":"+strconv.Itoa(int(serverInfo.Port)))] = ServerInfo{
-				alive:             true,
-				ip:                serverInfo.Ip,
-				port:              serverInfo.Port,
-				serverType:        serverInfo.Type,
-				currentLoad:       serverInfo.CurrentLoad,
-				lastHeartbeatTime: time.Now().Format(dateFormat),
-			}
-		}
-	}
-
-	lres := &protocol.ClusterResponse{
-		Status: protocol.Status_SUCCESS,
-	}
-	wdata, err := proto.Marshal(lres)
-	utils.CheckError(err)
-	return wdata
 }
 
 // 输出服务器状态
@@ -243,25 +218,25 @@ func checkAlive() {
 	}
 }
 
-func Run() {
-	L.Info("Cluster 服务启动")
-	L.Info(time.Now().Format(dateFormat))
-	appConf, err := config.NewConfig("ini", "conf/app.conf")
-	utils.CheckError(err)
+// func Run() {
+// 	L.Info("Cluster 服务启动")
+// 	L.Info(time.Now().Format(dateFormat))
+// 	appConf, err := config.NewConfig("ini", "conf/app.conf")
+// 	utils.CheckError(err)
 
-	go schedule()
-	addr := ":" + appConf.String("server::port")
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
-	utils.CheckError(err)
-	listener, err := net.ListenTCP("tcp", tcpAddr)
-	utils.CheckError(err)
-	L.Info("服务监听端口:%s", appConf.String("server::port"))
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			L.Error("请求失败")
-			continue
-		}
-		go handleClient(conn)
-	}
-}
+// 	go schedule()
+// 	addr := ":" + appConf.String("server::port")
+// 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
+// 	utils.CheckError(err)
+// 	listener, err := net.ListenTCP("tcp", tcpAddr)
+// 	utils.CheckError(err)
+// 	L.Info("服务监听端口:%s", appConf.String("server::port"))
+// 	for {
+// 		conn, err := listener.Accept()
+// 		if err != nil {
+// 			L.Error("请求失败")
+// 			continue
+// 		}
+// 		go handleClient(conn)
+// 	}
+// }

@@ -3,7 +3,7 @@ GMOCK=gmock-1.7.0.zip
 PROTOBUF=protobuf-2.6.1
 CUR_DIR=
 SRC_DIR=./src
-DST_DIR=./gen
+DST_DIR=./_gen
 
 init_protobuf(){
     cd protobuf
