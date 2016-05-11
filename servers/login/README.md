@@ -5,7 +5,7 @@
 用户登录成功后返回 Message服务器信息，后续用户直接和Message服务器交互。  
 登录成功的用户通过 Route 服务器来获取Message服务器信息。  
 
-####服务流程
+##服务流程
 - 启动后从配置文件里读取 Cluster 服务器信息
 - 向 Cluster 服务器注册自身
 - 从 Cluster 服务器获取 Message, DB 服务器信息
