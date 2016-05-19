@@ -49,6 +49,9 @@ type ServerList struct {
 // 服务器列表
 var Servers = make(map[string]ServerList)
 
+// 服务器自身信息，用于注册自身
+var selfInfo ServerInfo
+
 func runServe(ctx *cli.Context) {
 	L.Info("Cluster 服务启动")
 	L.Info(time.Now().Format(dateFormat))
@@ -62,6 +65,12 @@ func runServe(ctx *cli.Context) {
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	utils.CheckError(err)
 	L.Info("服务监听端口:%s", appConf.String("server::port"))
+
+	selfInfo = ServerInfo{
+		alive: true,
+		ip:    "",
+	}
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -103,21 +112,6 @@ func handleClient(conn net.Conn) {
 		}
 
 		request = make([]byte, 1024)
-	}
-}
-
-// 输出服务器状态
-func printStatus() {
-	for k, v := range Servers {
-		L.Debug("服务器类型：%s，主机数量：%d", k, len(v.data))
-		isLive := 0
-		for _, server := range v.data {
-			L.Debug("服务器状态：\nIP：%s\n端口：%d\n存活状态:%t\n负载：%d", server.ip, server.port, server.alive, server.currentLoad)
-			if server.alive {
-				isLive++
-			}
-		}
-		L.Debug("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
 	}
 }
 

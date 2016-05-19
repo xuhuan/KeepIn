@@ -20,12 +20,16 @@ var L = utils.L
 // 当前负载
 var currentLoad = 0
 
-var cl = make(chan int)
+// 协程池大小
+var coroutinePool = make(chan int, 100000)
 
-var aliveTimeout = time.Second * 60
+// 定时注册自身间隔
 var internal = time.Second * 30
+
+// 时间格式
 var dateFormat = "2006-01-02 15:04:05"
 
+// 命令
 var CmdServe = cli.Command{
 	Name:        "serve",
 	Usage:       "start server cluster ",
@@ -72,39 +76,44 @@ func runServe(ctx *cli.Context) {
 			L.Error("请求失败")
 			continue
 		}
-		go handleClient(conn)
+		// 控制协程数量
+		coroutinePool <- 1
+		go func(con net.Conn) {
+			handleClient(con)
+			<-coroutinePool
+		}(conn)
 	}
 }
 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 	L.Debug("收到请求")
-	// 负载值加1
-	cl <- 1
+	// 设置超时时间
 	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
-	request := make([]byte, 1024)
+	// 设置buff
+	buff := make([]byte, 1024)
 	for {
-		read_len, err := conn.Read(request)
+		readLen, err := conn.Read(buff)
 		if err != nil {
 			L.Error(err.Error())
 			break
 		}
-		L.Debug("收到消息,长度：%d", read_len)
+		L.Debug("收到消息,长度：%d", readLen)
 
-		data := request[:read_len]
+		data := buff[:readLen]
 		encode := &protocol.ClusterRequest{}
 		err = proto.Unmarshal(data, encode)
 		utils.CheckError(err)
-		if read_len == 0 {
+		if readLen == 0 {
 			break
 		}
 
 		switch encode.Act {
 		case protocol.LoginActionType_LOGIN:
-			conn.Write(getServer(encode.ServerType))
+			conn.Write(login(encode))
 			break
 		case protocol.LoginActionType_LOGIN_OUT:
-			conn.Write(regServer(encode))
+			conn.Write(loginOut(encode))
 			break
 		default:
 			eres := &protocol.LoginResponse{
@@ -116,10 +125,17 @@ func handleClient(conn net.Conn) {
 			break
 		}
 
-		request = make([]byte, 1024)
+		// 清空
+		buff = make([]byte, 1024)
 	}
-	// 负载值减1
-	cl <- -1
+}
+
+func login(req *protocol.ClusterRequest) {
+
+}
+
+func loginOut(req *protocol.ClusterRequest) {
+
 }
 
 // 统计当前负载
