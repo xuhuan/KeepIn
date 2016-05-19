@@ -10,8 +10,9 @@ import (
 	// "log"
 	"net"
 	// "os"
-	// "runtime"
-	"strconv"
+	"runtime"
+	// "strconv"
+	"fmt"
 	"time"
 )
 
@@ -42,7 +43,6 @@ var CmdServe = cli.Command{
 
 // 服务器信息
 type ServerInfo struct {
-	alive       bool
 	ip          string
 	port        int32
 	currentLoad int32
@@ -54,8 +54,21 @@ type ServerList struct {
 	data       map[string]ServerInfo
 }
 
+// [server]
+// port = 9000
+
+// [cluster]
+// ip   =localhost
+// port =9200
+
+// type Config struct {
+// 	server
+// }
+
 // 服务器列表
 var Servers = make(map[string]ServerList)
+
+// var selfInfo ServerInfo
 
 func runServe(ctx *cli.Context) {
 	L.Info("Cluster 服务启动")
@@ -85,6 +98,10 @@ func runServe(ctx *cli.Context) {
 	}
 }
 
+// func getSelf() {
+// 	selfInfo
+// }
+
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 	L.Debug("收到请求")
@@ -109,12 +126,12 @@ func handleClient(conn net.Conn) {
 		}
 
 		switch encode.Act {
-		case protocol.LoginActionType_LOGIN:
-			conn.Write(login(encode))
-			break
-		case protocol.LoginActionType_LOGIN_OUT:
-			conn.Write(loginOut(encode))
-			break
+		// case protocol.LoginActionType_LOGIN:
+		// 	conn.Write(login(encode))
+		// 	break
+		// case protocol.LoginActionType_LOGIN_OUT:
+		// 	conn.Write(loginOut(encode))
+		// 	break
 		default:
 			eres := &protocol.LoginResponse{
 				Status: protocol.Status_FAIL,
@@ -130,35 +147,14 @@ func handleClient(conn net.Conn) {
 	}
 }
 
-func login(req *protocol.ClusterRequest) {
-
+func login(req *protocol.ClusterRequest) []byte {
+	d := make([]byte, 1024)
+	return d
 }
 
-func loginOut(req *protocol.ClusterRequest) {
-
-}
-
-// 统计当前负载
-func count() {
-	for {
-		currentLoad += <-cl
-		L.Debug("当前负载：%d", currentLoad)
-	}
-}
-
-// 输出服务器状态
-func printStatus() {
-	for k, v := range Servers {
-		L.Debug("服务器类型：%s，主机数量：%d", k, len(v.data))
-		isLive := 0
-		for _, server := range v.data {
-			L.Debug("服务器状态：\nIP：%s\n端口：%d\n存活状态:%t\n负载：%d", server.ip, server.port, server.alive, server.currentLoad)
-			if server.alive {
-				isLive++
-			}
-		}
-		L.Debug("服务器存活数量：%d,非活跃数量：%d", isLive, len(v.data)-isLive)
-	}
+func loginOut(req *protocol.ClusterRequest) []byte {
+	d := make([]byte, 1024)
+	return d
 }
 
 // 获取多个指定类型的负载最小服务器信息
@@ -178,11 +174,10 @@ func getServer(serverTypes []protocol.ClusterServerType) []byte {
 			i++
 		}
 		data = append(data, &protocol.ClusterServerInfo{
-			Type:              _server.serverType,
-			Ip:                _server.ip,
-			Port:              _server.port,
-			CurrentLoad:       _server.currentLoad,
-			LastHeartbeatTime: _server.lastHeartbeatTime,
+			Type:        _server.serverType,
+			Ip:          _server.ip,
+			Port:        _server.port,
+			CurrentLoad: _server.currentLoad,
 		})
 	}
 	lres := &protocol.ClusterResponse{
@@ -195,8 +190,7 @@ func getServer(serverTypes []protocol.ClusterServerType) []byte {
 }
 
 // 注册服务器
-func regServer(server *protocol.ClusterRequest) []byte {
-
+func regServer() []byte {
 	lres := &protocol.ClusterRequest{
 		Act: protocol.ClusterActionType_REG_SERVER,
 		Data: []*protocol.ClusterServerInfo{
@@ -209,33 +203,8 @@ func regServer(server *protocol.ClusterRequest) []byte {
 		},
 	}
 	data, err := proto.Marshal(lres)
-
-	if server.GetData() != nil {
-		serverInfo := server.GetData()[0]
-		_, ok := Servers[serverInfo.Type.String()]
-		if !ok {
-			Servers[serverInfo.Type.String()] = ServerList{
-				serverType: serverInfo.Type,
-				data:       make(map[string]ServerInfo),
-			}
-		}
-		Servers[serverInfo.Type.String()].data[utils.Md5(serverInfo.Ip+":"+strconv.Itoa(int(serverInfo.Port)))] = ServerInfo{
-			alive:             true,
-			ip:                serverInfo.Ip,
-			port:              serverInfo.Port,
-			serverType:        serverInfo.Type,
-			currentLoad:       serverInfo.CurrentLoad,
-			lastHeartbeatTime: time.Now().Format(dateFormat),
-		}
-	}
-	// printStatus()
-
-	lres := &protocol.ClusterResponse{
-		Status: protocol.Status_SUCCESS,
-	}
-	wdata, err := proto.Marshal(lres)
 	utils.CheckError(err)
-	return wdata
+	return data
 }
 
 // 定时检查所有服务器最后心跳时间是否超过1分钟，超过的话则为未存活，因为所有服务器间隔30秒要向服务器发送心跳包
@@ -250,25 +219,33 @@ func schedule() {
 }
 
 func Run() {
-	L.Info("Cluster 服务启动")
-	L.Info(time.Now().Format(dateFormat))
-	appConf, err := config.NewConfig("ini", "conf/app.conf")
-	utils.CheckError(err)
+	fmt.Println("Login 服务启动")
+	go func() {
+		currentLoad++
+		coroutinePool <- 1
+		fmt.Println(len(coroutinePool), cap(coroutinePool), runtime.NumGoroutine(), currentLoad)
+	}()
+	currentLoad--
+	fmt.Println(currentLoad)
+	<-coroutinePool
 
-	go count()
-	// go schedule()
-	addr := ":" + appConf.String("server::port")
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
-	utils.CheckError(err)
-	listener, err := net.ListenTCP("tcp", tcpAddr)
-	utils.CheckError(err)
-	L.Info("服务监听端口:%s", appConf.String("server::port"))
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			L.Error("请求失败")
-			continue
-		}
-		go handleClient(conn)
-	}
+	L.Info("Login 服务启动")
+	L.Info("%d %d", len(coroutinePool), cap(coroutinePool))
+
+	// L.Info(time.Now().Format(dateFormat))
+	// appConf, err := config.NewConfig("ini", "conf/app.conf")
+	// utils.CheckError(err)
+
+	// go count()
+	// // go schedule()
+	// addr := ":" + appConf.String("server::port")
+	// tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
+	// utils.CheckError(err)
+	// listener, err := net.ListenTCP("tcp", tcpAddr)
+	// utils.CheckError(err)
+	// L.Info("服务监听端口:%s", appConf.String("server::port"))
+	// for {
+	// 	conn, err := listener.Accept()
+	// 	if err != nil {
+	// 		L.Error(currentLoad// }
 }
