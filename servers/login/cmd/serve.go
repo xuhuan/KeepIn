@@ -20,7 +20,9 @@ var L = utils.L
 // 当前负载
 var currentLoad = 0
 
-var cl = make(chan int)
+var maxLoad = 10
+
+var cl = make(chan int, maxLoad)
 
 var aliveTimeout = time.Second * 60
 var internal = time.Second * 30
@@ -76,12 +78,20 @@ func runServe(ctx *cli.Context) {
 	}
 }
 
+func reader(conn net.Conn) {
+	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
+	// 负载值加1
+	cl <- 1
+for  {
+	select{
+		case
+	}
+}
+}
+
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 	L.Debug("收到请求")
-	// 负载值加1
-	cl <- 1
-	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
 	request := make([]byte, 1024)
 	for {
 		read_len, err := conn.Read(request)
@@ -234,7 +244,7 @@ func schedule() {
 }
 
 func Run() {
-	L.Info("Cluster 服务启动")
+	L.Info("Login 服务启动")
 	L.Info(time.Now().Format(dateFormat))
 	appConf, err := config.NewConfig("ini", "conf/app.conf")
 	utils.CheckError(err)
@@ -245,6 +255,7 @@ func Run() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	utils.CheckError(err)
 	listener, err := net.ListenTCP("tcp", tcpAddr)
+	defer listener.Close()
 	utils.CheckError(err)
 	L.Info("服务监听端口:%s", appConf.String("server::port"))
 	for {
@@ -254,5 +265,7 @@ func Run() {
 			continue
 		}
 		go handleClient(conn)
+		currentLoad += <-cl
+		L.Debug("负载：%d", currentLoad)
 	}
 }
