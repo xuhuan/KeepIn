@@ -10,16 +10,13 @@ import (
 	// "log"
 	"net"
 	// "os"
-	"runtime"
+	// "runtime"
 	// "strconv"
-	"fmt"
+	// "fmt"
 	"time"
 )
 
 var L = utils.L
-
-// 当前负载
-var currentLoad = 0
 
 // 协程池大小
 var coroutinePool = make(chan int, 100000)
@@ -219,33 +216,34 @@ func schedule() {
 }
 
 func Run() {
-	fmt.Println("Login 服务启动")
-	go func() {
-		currentLoad++
-		coroutinePool <- 1
-		fmt.Println(len(coroutinePool), cap(coroutinePool), runtime.NumGoroutine(), currentLoad)
-	}()
-	currentLoad--
-	fmt.Println(currentLoad)
-	<-coroutinePool
-
 	L.Info("Login 服务启动")
-	L.Info("%d %d", len(coroutinePool), cap(coroutinePool))
-
-	// L.Info(time.Now().Format(dateFormat))
-	// appConf, err := config.NewConfig("ini", "conf/app.conf")
-	// utils.CheckError(err)
+	appConf, err := config.NewConfig("ini", "conf/app.conf")
+	utils.CheckError(err)
 
 	// go count()
-	// // go schedule()
-	// addr := ":" + appConf.String("server::port")
-	// tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
-	// utils.CheckError(err)
-	// listener, err := net.ListenTCP("tcp", tcpAddr)
-	// utils.CheckError(err)
-	// L.Info("服务监听端口:%s", appConf.String("server::port"))
-	// for {
-	// 	conn, err := listener.Accept()
-	// 	if err != nil {
-	// 		L.Error(currentLoad// }
+	// go schedule()
+	addr := ":" + appConf.String("server::port")
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
+	utils.CheckError(err)
+	listener, err := net.ListenTCP("tcp", tcpAddr)
+	utils.CheckError(err)
+	L.Info("服务监听端口:%s", appConf.String("server::port"))
+	for {
+		L.Info("当前负载：%d", len(coroutinePool))
+		conn, err := listener.Accept()
+		if err != nil {
+			L.Error("请求失败")
+			continue
+		}
+		if err != nil {
+			L.Error("%d", len(coroutinePool))
+		}
+		// 控制协程数量
+		coroutinePool <- 1
+		go func(con net.Conn) {
+			handleClient(con)
+			<-coroutinePool
+		}(conn)
+
+	}
 }
