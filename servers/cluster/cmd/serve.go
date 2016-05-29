@@ -37,12 +37,12 @@ type ServerInfo struct {
 	ip                string
 	port              int32
 	currentLoad       int32
-	serverType        protocol.ClusterServerType
+	serverType        protocol.ServerType
 	lastHeartbeatTime string
 }
 
 type ServerList struct {
-	serverType protocol.ClusterServerType
+	serverType protocol.ServerType
 	data       map[string]ServerInfo
 }
 
@@ -116,8 +116,8 @@ func handleClient(conn net.Conn) {
 }
 
 // 获取多个指定类型的负载最小服务器信息
-func getServer(serverTypes []protocol.ClusterServerType) []byte {
-	data := []*protocol.ClusterServerInfo{}
+func getServer(serverTypes []protocol.ServerType) []byte {
+	data := []*protocol.ServerInfo{}
 	for _, serverType := range serverTypes {
 		var _server ServerInfo
 		i := 0
@@ -131,7 +131,7 @@ func getServer(serverTypes []protocol.ClusterServerType) []byte {
 			}
 			i++
 		}
-		data = append(data, &protocol.ClusterServerInfo{
+		data = append(data, &protocol.ServerInfo{
 			Type:              _server.serverType,
 			Ip:                _server.ip,
 			Port:              _server.port,

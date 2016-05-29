@@ -21,35 +21,19 @@ enum ClusterActionType{
 	GET_SERVERS = 2;
 }
 
-// 服务器类型
-enum ClusterServerType{
-	LOGIN   = 0;
-	ROUTE   = 1;
-	MESSAGE = 2;
-	DB      = 3;
-	PUSH    = 4;
-	FILE    = 5;
-	CLUSTER = 6;
-}
 
 // 请求
 message ClusterRequest{
 	ClusterActionType act                 = 1;
-	repeated ClusterServerInfo data       = 2;
-	repeated ClusterServerType serverType = 3;
+	repeated Base.ServerInfo data       = 2;
+	repeated Base.ServerType serverType = 3;
 }
 
 // 应答
 message ClusterResponse{
 	Base.Status status              = 1;
-	repeated ClusterServerInfo data = 2;
+	repeated Base.ServerInfo data = 2;
 }
 
-message ClusterServerInfo{
-	ClusterServerType type   = 1; //服务器类型
-	string ip                = 2; //服务器IP
-	int32 port               = 3; //服务器端口
-	int32 currentLoad        = 4; //当前负载值
-	string lastHeartbeatTime = 5; //最后心跳时间
-}
+
 

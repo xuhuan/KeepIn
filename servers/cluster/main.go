@@ -1,14 +1,14 @@
 package main
 
 import (
-	// "github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	// "github.com/golang/protobuf/proto"
 	// "github.com/xuhuan/keepin/protocol"
 	"github.com/xuhuan/keepin/servers/cluster/cmd"
 	"github.com/xuhuan/keepin/utils"
 	// "log"
 	// "net"
-	// "os"
+	"os"
 	"runtime"
 	// "time"
 )

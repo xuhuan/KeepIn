@@ -39,7 +39,6 @@ enum ServerType{
     FILE    = 5;
     CLUSTER = 6;
 }
-
 message ServerInfo{
     ServerType type          = 1; //服务器类型
     string ip                = 2; //服务器IP
